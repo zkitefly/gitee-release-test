@@ -21,7 +21,17 @@ jobs:
       uses: actions/github-script@main
       with:
         script: |
-          const release = context.payload.release;
+          let release;
+          if (context.eventName === 'release') {
+            release = context.payload.release;
+          } else {
+            // 如果是手动触发，获取最新的 release
+            const { data: latestRelease } = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            release = latestRelease;
+          }
           return {
             tag_name: release.tag_name,
             name: release.name,
