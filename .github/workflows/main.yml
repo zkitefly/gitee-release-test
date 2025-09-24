@@ -22,10 +22,9 @@ jobs:
         # Get latest release info
         release_url="${GITHUB_API_URL}/repos/burningtnt/Terracotta/releases/latest"
         
-        response=$(curl -sL \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "${release_url}")
+        response=$(wget -d --header="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          --header="Accept: application/vnd.github.v3+json" \
+          -O- "${release_url}")
         
         formatted_response=$(echo "$response" | jq -c '{
           tag_name: .tag_name,
@@ -48,7 +47,7 @@ jobs:
         while IFS= read -r url; do
           fname=$(basename "$url")
           echo "Downloading $fname..."
-          curl -L -o "assets/$fname" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$url"
+          wget -d --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" -O "assets/$fname" "$url"
         done < <(jq -r '.assets[].url' release_info.json)
       shell: bash
 
@@ -66,13 +65,8 @@ jobs:
         body="${body}
         GitHub Release: ${html_url}"
         
-        response=$(curl -s -X POST "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases" \
-          -d "access_token=${GITEE_TOKEN}" \
-          -d "tag_name=${tag_name}" \
-          -d "name=${name}" \
-          -d "body=${body}" \
-          -d "prerelease=${prerelease}" \
-          -d "target_commitish=${GITEE_TARGET_COMMITISH}")
+        response=$(wget -d --post-data="access_token=${GITEE_TOKEN}&tag_name=${tag_name}&name=${name}&body=${body}&prerelease=${prerelease}&target_commitish=${GITEE_TARGET_COMMITISH}" \
+          -O- "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases")
         echo "$response"
         
         echo "$response" | jq -r '.id' > release_id.txt
@@ -82,8 +76,9 @@ jobs:
       run: |
         release_id=$(cat release_id.txt)
         for file in assets/*; do
-          curl -X POST "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${release_id}/attach_files" \
-            -F "access_token=${GITEE_TOKEN}" \
-            -F "file=@${file}"
+          wget -d --post-file="$file" \
+            --header="Content-Type: multipart/form-data" \
+            --post-data="access_token=${GITEE_TOKEN}" \
+            -O- "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${release_id}/attach_files"
         done
       shell: bash
