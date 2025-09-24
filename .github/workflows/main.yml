@@ -73,7 +73,8 @@ jobs:
           -d "name=${name}" \
           -d "body=${body}" \
           -d "prerelease=${prerelease}" \
-          -d "target_commitish=${GITEE_TARGET_COMMITISH}")"
+          -d "target_commitish=${GITEE_TARGET_COMMITISH}")
+        echo "$response"
         
         echo "$response" | jq -r '.id' > release_id.txt
       shell: bash
