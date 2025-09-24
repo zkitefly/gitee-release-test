@@ -20,7 +20,8 @@ jobs:
       id: release
       run: |
         # Get latest release info
-        release_url="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/latest"
+        # release_url="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/latest"
+        release_url="${GITHUB_API_URL}/repos/Terracotta/releases/releases/latest"
         
         response=$(curl -sL \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
