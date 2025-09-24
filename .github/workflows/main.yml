@@ -7,9 +7,9 @@ on:
 
 env:
   GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-  GITEE_OWNER: ${{ secrets.GITEE_OWNER }}
-  GITEE_REPO: ${{ secrets.GITEE_REPO }}
-  GITEE_TARGET_COMMITISH: ${{ secrets.GITEE_TARGET_COMMITISH }}
+  GITEE_OWNER: ${{ vars.GITEE_OWNER }}
+  GITEE_REPO: ${{ vars.GITEE_REPO }}
+  GITEE_TARGET_COMMITISH: ${{ vars.GITEE_TARGET_COMMITISH }}
 
 jobs:
   sync-release-to-gitee:
@@ -18,36 +18,28 @@ jobs:
     steps:
     - name: Get release info
       id: release
-      uses: actions/github-script@main
-      with:
-        script: |
-          let release;
-          if (context.eventName === 'release') {
-            release = context.payload.release;
-          } else {
-            // 如果是手动触发，获取最新的 release
-            const { data: latestRelease } = await github.rest.repos.getLatestRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            release = latestRelease;
-          }
-          return {
-            tag_name: release.tag_name,
-            name: release.name,
-            body: release.body,
-            prerelease: release.prerelease,
-            assets: release.assets.map(asset => ({
-              name: asset.name,
-              url: asset.browser_download_url
-            })),
-            html_url: release.html_url
-          };
-
-    - name: Show release info
       run: |
+        # Get latest release info
+        release_url="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/latest"
+        
+        response=$(curl -sL \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "${release_url}")
+        
+        formatted_response=$(echo "$response" | jq '{
+          tag_name: .tag_name,
+          name: .name,
+          body: .body,
+          prerelease: .prerelease,
+          assets: [.assets[] | {name: .name, url: .browser_download_url}],
+          html_url: .html_url
+        }')
+        
+        echo "result=$formatted_response" >> $GITHUB_OUTPUT
+        
         echo "Release info:"
-        echo '${{ toJSON(steps.release.outputs.result) }}'
+        echo "$formatted_response"
       shell: bash
 
     - name: Download all release assets
@@ -64,7 +56,6 @@ jobs:
       run: |
         # Combine original body with GitHub release URL
         body="${{ fromJson(steps.release.outputs.result).body }}
-
         GitHub Release: ${{ fromJson(steps.release.outputs.result).html_url }}"
         
         response=$(curl -s -X POST "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases" \
