@@ -74,8 +74,6 @@ jobs:
           -d "body=${body}" \
           -d "prerelease=${prerelease}" \
           -d "target_commitish=${GITEE_TARGET_COMMITISH}")"
-        echo "Gitee release response:"
-        echo "$response"
         
         echo "$response" | jq -r '.id' > release_id.txt
       shell: bash
