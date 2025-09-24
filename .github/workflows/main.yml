@@ -47,10 +47,12 @@ jobs:
     - name: Download all release assets
       run: |
         mkdir assets
-        for url in $(jq -r '.assets[].url' <<< '${{ steps.release.outputs.result }}'); do
+        echo '${{ steps.release.outputs.result }}' > release.json
+        while IFS= read -r url; do
           fname=$(basename "$url")
+          echo "Downloading $fname..."
           curl -L -o "assets/$fname" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$url"
-        done
+        done < <(jq -r '.assets[].url' release.json)
       shell: bash
 
     - name: Create Gitee Release
