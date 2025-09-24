@@ -79,14 +79,29 @@ jobs:
         echo "$response" | jq -r '.id' > release_id.txt
       shell: bash
 
+    - name: Install GNU Parallel
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y parallel
+      shell: bash
+
     - name: Upload assets to Gitee Release
       run: |
         release_id=$(cat release_id.txt)
-        for file in assets/*; do
+        export GITEE_TOKEN=${GITEE_TOKEN}
+        export GITEE_OWNER=${GITEE_OWNER}
+        export GITEE_REPO=${GITEE_REPO}
+        export release_id=${release_id}
+        
+        upload_file() {
+          local file="$1"
           echo "=== Uploading $file to Gitee release $release_id ==="
           curl -X POST "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${release_id}/attach_files" \
             -F "access_token=${GITEE_TOKEN}" \
             -F "file=@${file}"
           echo "=== Uploaded $file successfully ==="
-        done
+        }
+        export -f upload_file
+        
+        find assets -type f | parallel -j 5 upload_file
       shell: bash
