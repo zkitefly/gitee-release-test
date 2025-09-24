@@ -20,16 +20,14 @@ jobs:
       id: release
       run: |
         # Get latest release info
-        # release_url="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/latest"
-        release_url="https://api.github.com/repos/burningtnt/Terracotta/releases/latest"
-        echo '${GITHUB_API_URL} | ${GITHUB_REPOSITORY}'
+        release_url="${GITHUB_API_URL}/repos/burningtnt/Terracotta/releases/latest"
         
         response=$(curl -sL \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
           "${release_url}")
         
-        formatted_response=$(echo "$response" | jq '{
+        formatted_response=$(echo "$response" | jq -c '{
           tag_name: .tag_name,
           name: .name,
           body: .body,
@@ -38,7 +36,9 @@ jobs:
           html_url: .html_url
         }')
         
-        echo "result=$formatted_response" >> $GITHUB_OUTPUT
+        echo "result<<EOF" >> $GITHUB_OUTPUT
+        echo "$formatted_response" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
         
         echo "Release info:"
         echo "$formatted_response"
